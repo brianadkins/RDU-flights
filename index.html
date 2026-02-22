@@ -4,20 +4,59 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RDU Departures by Hour - Feb 26, 2026</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.15.0/Recharts.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0f172a; font-family: system-ui, -apple-system, sans-serif; color: #f1f5f9; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+  .stats { display: flex; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+  .stat { background: #1e293b; border-radius: 10px; padding: 14px 20px; flex: 1 1 140px; min-width: 140px; }
+  .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-val { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .card { background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .legend { display: flex; gap: 20px; margin-bottom: 16px; font-size: 12px; color: #94a3b8; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .legend-line { width: 20px; height: 3px; border-radius: 2px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .chart-container { position: relative; width: 100%; height: 370px; }
+  canvas { width: 100% !important; }
+  h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .airline-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .airline-name { width: 100px; font-size: 13px; color: #cbd5e1; text-align: right; }
+  .airline-bar-bg { flex: 1; background: #0f172a; border-radius: 6px; height: 24px; overflow: hidden; }
+  .airline-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 600; color: #fff; min-width: 30px; }
+  .tooltip { position: absolute; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; color: #f1f5f9; pointer-events: none; display: none; z-index: 10; font-size: 12px; max-width: 260px; }
+  .tooltip-title { font-weight: 700; margin-bottom: 4px; }
+  .tooltip-pct { color: #f59e0b; margin-bottom: 4px; }
+  .tooltip-list { font-size: 11px; color: #94a3b8; max-height: 180px; overflow-y: auto; }
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } = Recharts;
 
+<div class="wrap">
+  <h1>RDU Departures by Hour</h1>
+  <p class="sub">Thursday, February 26, 2026 — <span id="totalCount"></span> total non-stop flights</p>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="card">
+    <div class="legend">
+      <div><span class="legend-dot" style="background:#3b82f6"></span>Flights per hour</div>
+      <div><span class="legend-line" style="background:#f59e0b"></span>Cumulative % departed</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="chart"></canvas>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Flights by Airline</h2>
+    <div id="airlines"></div>
+  </div>
+</div>
+
+<script>
 const flights = [
   {t:"05:00",dst:"ORD",fl:"AA3703",al:"American"},{t:"05:03",dst:"CLT",fl:"AA1903",al:"American"},
   {t:"05:15",dst:"ATL",fl:"DL1530",al:"Delta"},{t:"05:25",dst:"MDW",fl:"WN339",al:"Southwest"},
@@ -129,102 +168,203 @@ const flights = [
   {t:"22:18",dst:"PHL",fl:"F91518",al:"Frontier"},{t:"22:20",dst:"BNA",fl:"AA4646",al:"American"},
 ];
 
+// Process data
 const hourCounts = {};
 for (let h = 5; h <= 22; h++) hourCounts[h] = 0;
-flights.forEach(f => { const hr = parseInt(f.t.split(":")[0]); hourCounts[hr] = (hourCounts[hr] || 0) + 1; });
+flights.forEach(f => { hourCounts[parseInt(f.t.split(":")[0])]++; });
 
-let cumulative = 0;
+let cum = 0;
 const total = flights.length;
-const data = Object.entries(hourCounts).map(([h, c]) => {
-  cumulative += c;
-  return {
-    hour: `${h.toString().padStart(2,"0")}:00`,
-    count: c,
-    cumPct: Math.round((cumulative / total) * 1000) / 10,
-    label: parseInt(h) < 12 ? `${parseInt(h)}am` : parseInt(h) === 12 ? "12pm" : `${parseInt(h)-12}pm`
-  };
-});
-
-const airlineCounts = {};
-flights.forEach(f => { airlineCounts[f.al] = (airlineCounts[f.al] || 0) + 1; });
-const airlineData = Object.entries(airlineCounts).sort((a,b) => b[1]-a[1]).map(([name, count]) => ({ name, count }));
-
-const peak = data.reduce((a,b) => a.count > b.count ? a : b);
-
-const CustomTooltip = ({ active, payload }) => {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  const inHour = flights.filter(f => `${parseInt(f.t.split(":")[0]).toString().padStart(2,"0")}:00` === d.hour);
-  return (
-    React.createElement('div', {style:{background:"#1e293b",border:"1px solid #334155",borderRadius:8,padding:"10px 14px",color:"#f1f5f9",maxWidth:260}},
-      React.createElement('div', {style:{fontWeight:700,marginBottom:4}}, `${d.label} — ${d.count} flights`),
-      React.createElement('div', {style:{fontSize:12,color:"#f59e0b",marginBottom:4}}, `${d.cumPct}% departed by end of hour`),
-      React.createElement('div', {style:{fontSize:11,color:"#94a3b8",maxHeight:180,overflowY:"auto"}},
-        inHour.map((f,i) => React.createElement('div', {key:i}, `${f.t} → ${f.dst} (${f.fl})`))
-      )
-    )
-  );
-};
-
-function App() {
-  const s = (tag, props, ...kids) => React.createElement(tag, props, ...kids);
-
-  return s('div', {style:{background:"#0f172a",minHeight:"100vh",padding:24,fontFamily:"system-ui,sans-serif",color:"#f1f5f9"}},
-    s('div', {style:{maxWidth:900,margin:"0 auto"}},
-      s('h1', {style:{fontSize:24,fontWeight:700,marginBottom:4}}, "RDU Departures by Hour"),
-      s('p', {style:{color:"#94a3b8",fontSize:14,marginBottom:24}}, `Thursday, February 26, 2026 — ${flights.length} total non-stop flights`),
-
-      s('div', {style:{display:"flex",gap:16,marginBottom:28,flexWrap:"wrap"}},
-        [{label:"Total Flights",val:flights.length},{label:"Peak Hour",val:`${peak.label} (${peak.count})`},{label:"Airlines",val:Object.keys(airlineCounts).length},{label:"Destinations",val:new Set(flights.map(f=>f.dst)).size}].map((st,i) =>
-          s('div', {key:i,style:{background:"#1e293b",borderRadius:10,padding:"14px 20px",flex:"1 1 140px",minWidth:140}},
-            s('div', {style:{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1}}, st.label),
-            s('div', {style:{fontSize:22,fontWeight:700,marginTop:4}}, st.val)
-          )
-        )
-      ),
-
-      s('div', {style:{background:"#1e293b",borderRadius:12,padding:24,marginBottom:24}},
-        s('div', {style:{display:"flex",gap:20,marginBottom:12,fontSize:12}},
-          s('div', {style:{display:"flex",alignItems:"center",gap:6}},
-            s('div', {style:{width:14,height:14,borderRadius:3,background:"#3b82f6"}}),
-            s('span', {style:{color:"#94a3b8"}}, "Flights per hour")
-          ),
-          s('div', {style:{display:"flex",alignItems:"center",gap:6}},
-            s('div', {style:{width:20,height:3,borderRadius:2,background:"#f59e0b"}}),
-            s('span', {style:{color:"#94a3b8"}}, "Cumulative % departed")
-          )
-        ),
-        s(ResponsiveContainer, {width:"100%",height:340},
-          s(ComposedChart, {data, margin:{top:10,right:10,left:-10,bottom:0}},
-            s(CartesianGrid, {strokeDasharray:"3 3",stroke:"#334155"}),
-            s(XAxis, {dataKey:"label",tick:{fill:"#94a3b8",fontSize:12}}),
-            s(YAxis, {yAxisId:"left",tick:{fill:"#94a3b8",fontSize:12}}),
-            s(YAxis, {yAxisId:"right",orientation:"right",domain:[0,100],tickFormatter:v=>`${v}%`,tick:{fill:"#f59e0b",fontSize:12}}),
-            s(Tooltip, {content: s(CustomTooltip), cursor:{fill:"rgba(59,130,246,0.1)"}}),
-            s(Bar, {yAxisId:"left",dataKey:"count",radius:[6,6,0,0]},
-              data.map((d,i) => s(Cell, {key:i, fill: d.hour===peak.hour ? "#f59e0b" : "#3b82f6"}))
-            ),
-            s(Line, {yAxisId:"right",type:"monotone",dataKey:"cumPct",stroke:"#f59e0b",strokeWidth:2.5,dot:{fill:"#f59e0b",r:3,strokeWidth:0}})
-          )
-        )
-      ),
-
-      s('div', {style:{background:"#1e293b",borderRadius:12,padding:24}},
-        s('h2', {style:{fontSize:16,fontWeight:600,marginBottom:16}}, "Flights by Airline"),
-        airlineData.map((a,i) =>
-          s('div', {key:i,style:{display:"flex",alignItems:"center",gap:12,marginBottom:10}},
-            s('div', {style:{width:90,fontSize:13,color:"#cbd5e1",textAlign:"right"}}, a.name),
-            s('div', {style:{flex:1,background:"#0f172a",borderRadius:6,height:24,overflow:"hidden"}},
-              s('div', {style:{width:`${(a.count/airlineData[0].count)*100}%`,height:"100%",background:i===0?"#f59e0b":"#3b82f6",borderRadius:6,display:"flex",alignItems:"center",paddingLeft:8,fontSize:11,fontWeight:600,color:"#fff",minWidth:30}}, a.count)
-            )
-          )
-        )
-      )
-    )
-  );
+const hours = [];
+for (let h = 5; h <= 22; h++) {
+  cum += hourCounts[h];
+  const lbl = h < 12 ? h + "am" : h === 12 ? "12pm" : (h - 12) + "pm";
+  hours.push({ h, count: hourCounts[h], cumPct: Math.round((cum / total) * 1000) / 10, label: lbl });
 }
 
-ReactDOM.render(React.createElement(App), document.getElementById('root'));
+const peak = hours.reduce((a, b) => a.count > b.count ? a : b);
+const airlineCounts = {};
+flights.forEach(f => { airlineCounts[f.al] = (airlineCounts[f.al] || 0) + 1; });
+const airlineData = Object.entries(airlineCounts).sort((a, b) => b[1] - a[1]);
+const destinations = new Set(flights.map(f => f.dst)).size;
+
+// Render stats
+document.getElementById("totalCount").textContent = total;
+const statsRow = document.getElementById("statsRow");
+[
+  ["Total Flights", total],
+  ["Peak Hour", peak.label + " (" + peak.count + ")"],
+  ["Airlines", Object.keys(airlineCounts).length],
+  ["Destinations", destinations]
+].forEach(([label, val]) => {
+  const d = document.createElement("div");
+  d.className = "stat";
+  d.innerHTML = '<div class="stat-label">' + label + '</div><div class="stat-val">' + val + '</div>';
+  statsRow.appendChild(d);
+});
+
+// Render airline bars
+const airlinesDiv = document.getElementById("airlines");
+const maxAl = airlineData[0][1];
+airlineData.forEach(([name, count], i) => {
+  const row = document.createElement("div");
+  row.className = "airline-row";
+  row.innerHTML = '<div class="airline-name">' + name + '</div>' +
+    '<div class="airline-bar-bg"><div class="airline-bar" style="width:' +
+    (count / maxAl * 100) + '%;background:' + (i === 0 ? "#f59e0b" : "#3b82f6") +
+    '">' + count + '</div></div>';
+  airlinesDiv.appendChild(row);
+});
+
+// Draw chart on canvas
+const canvas = document.getElementById("chart");
+const tooltip = document.getElementById("tooltip");
+const dpr = window.devicePixelRatio || 1;
+
+function draw() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const W = rect.width;
+  const H = rect.height;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  const padL = 45, padR = 55, padT = 20, padB = 40;
+  const cw = W - padL - padR;
+  const ch = H - padT - padB;
+  const n = hours.length;
+  const barW = (cw / n) * 0.65;
+  const gap = cw / n;
+  const maxCount = Math.ceil(peak.count / 5) * 5;
+
+  // Grid lines
+  ctx.strokeStyle = "#334155";
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([4, 4]);
+  for (let i = 0; i <= 5; i++) {
+    const y = padT + ch - (i / 5) * ch;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Left Y axis labels (count)
+  ctx.fillStyle = "#94a3b8";
+  ctx.font = "11px system-ui";
+  ctx.textAlign = "right";
+  for (let i = 0; i <= 5; i++) {
+    const val = Math.round((i / 5) * maxCount);
+    const y = padT + ch - (i / 5) * ch;
+    ctx.fillText(val, padL - 8, y + 4);
+  }
+
+  // Right Y axis labels (%)
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#f59e0b";
+  for (let i = 0; i <= 5; i++) {
+    const val = i * 20;
+    const y = padT + ch - (i / 5) * ch;
+    ctx.fillText(val + "%", W - padR + 8, y + 4);
+  }
+
+  // X axis labels
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#94a3b8";
+  hours.forEach((d, i) => {
+    const x = padL + i * gap + gap / 2;
+    ctx.fillText(d.label, x, H - padB + 20);
+  });
+
+  // Store bar rects for hover
+  const barRects = [];
+
+  // Draw bars
+  hours.forEach((d, i) => {
+    const x = padL + i * gap + (gap - barW) / 2;
+    const barH = (d.count / maxCount) * ch;
+    const y = padT + ch - barH;
+    const color = d.h === peak.h ? "#f59e0b" : "#3b82f6";
+
+    // Rounded rect
+    const r = Math.min(6, barW / 2);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + barW - r, y);
+    ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+    ctx.lineTo(x + barW, y + barH);
+    ctx.lineTo(x, y + barH);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.fill();
+
+    barRects.push({ x, y, w: barW, h: barH, idx: i });
+  });
+
+  // Draw cumulative line
+  ctx.strokeStyle = "#f59e0b";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  const linePoints = [];
+  hours.forEach((d, i) => {
+    const x = padL + i * gap + gap / 2;
+    const y = padT + ch - (d.cumPct / 100) * ch;
+    linePoints.push({ x, y });
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Draw dots on line
+  linePoints.forEach(p => {
+    ctx.fillStyle = "#f59e0b";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Hover handling
+  canvas.onmousemove = function(e) {
+    const r = canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+
+    let hit = -1;
+    for (let i = 0; i < hours.length; i++) {
+      const bx = padL + i * gap;
+      if (mx >= bx && mx < bx + gap) { hit = i; break; }
+    }
+
+    if (hit >= 0) {
+      const d = hours[hit];
+      const inHour = flights.filter(f => parseInt(f.t.split(":")[0]) === d.h);
+      let html = '<div class="tooltip-title">' + d.label + " — " + d.count + " flights</div>";
+      html += '<div class="tooltip-pct">' + d.cumPct + "% departed by end of hour</div>";
+      html += '<div class="tooltip-list">';
+      inHour.forEach(f => { html += f.t + " → " + f.dst + " (" + f.fl + ")<br>"; });
+      html += "</div>";
+      tooltip.innerHTML = html;
+      tooltip.style.display = "block";
+
+      let tx = mx + 16;
+      let ty = my - 10;
+      if (tx + 260 > W) tx = mx - 270;
+      if (ty < 0) ty = 10;
+      tooltip.style.left = tx + "px";
+      tooltip.style.top = ty + "px";
+    } else {
+      tooltip.style.display = "none";
+    }
+  };
+
+  canvas.onmouseleave = function() {
+    tooltip.style.display = "none";
+  };
+}
+
+draw();
+window.addEventListener("resize", draw);
 </script>
 </body>
 </html>
