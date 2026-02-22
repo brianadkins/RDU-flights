@@ -1,5 +1,22 @@
-import { useState } from "react";
-import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ComposedChart } from "recharts";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RDU Departures by Hour - Feb 26, 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.15.0/Recharts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f172a; font-family: system-ui, -apple-system, sans-serif; color: #f1f5f9; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } = Recharts;
 
 const flights = [
   {t:"05:00",dst:"ORD",fl:"AA3703",al:"American"},{t:"05:03",dst:"CLT",fl:"AA1903",al:"American"},
@@ -112,13 +129,9 @@ const flights = [
   {t:"22:18",dst:"PHL",fl:"F91518",al:"Frontier"},{t:"22:20",dst:"BNA",fl:"AA4646",al:"American"},
 ];
 
-// Group by hour
 const hourCounts = {};
 for (let h = 5; h <= 22; h++) hourCounts[h] = 0;
-flights.forEach(f => {
-  const hr = parseInt(f.t.split(":")[0]);
-  hourCounts[hr] = (hourCounts[hr] || 0) + 1;
-});
+flights.forEach(f => { const hr = parseInt(f.t.split(":")[0]); hourCounts[hr] = (hourCounts[hr] || 0) + 1; });
 
 let cumulative = 0;
 const total = flights.length;
@@ -132,101 +145,86 @@ const data = Object.entries(hourCounts).map(([h, c]) => {
   };
 });
 
-// Airline breakdown
 const airlineCounts = {};
 flights.forEach(f => { airlineCounts[f.al] = (airlineCounts[f.al] || 0) + 1; });
-const airlineData = Object.entries(airlineCounts)
-  .sort((a,b) => b[1]-a[1])
-  .map(([name, count]) => ({ name, count }));
+const airlineData = Object.entries(airlineCounts).sort((a,b) => b[1]-a[1]).map(([name, count]) => ({ name, count }));
 
-const colors = ["#3b82f6","#60a5fa","#93c5fd","#2563eb","#1d4ed8","#1e40af","#3b82f6","#60a5fa","#93c5fd","#2563eb","#1d4ed8","#1e40af","#3b82f6","#60a5fa","#93c5fd","#2563eb","#1d4ed8","#1e40af"];
+const peak = data.reduce((a,b) => a.count > b.count ? a : b);
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
-  const flightsInHour = flights.filter(f => {
-    const hr = parseInt(f.t.split(":")[0]);
-    return `${hr.toString().padStart(2,"0")}:00` === d.hour;
-  });
+  const inHour = flights.filter(f => `${parseInt(f.t.split(":")[0]).toString().padStart(2,"0")}:00` === d.hour);
   return (
-    <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "10px 14px", color: "#f1f5f9", maxWidth: 260 }}>
-      <div style={{ fontWeight: 700, marginBottom: 4 }}>{d.label} — {d.count} flights</div>
-      <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 4 }}>{d.cumPct}% departed by end of hour</div>
-      <div style={{ fontSize: 11, color: "#94a3b8", maxHeight: 180, overflowY: "auto" }}>
-        {flightsInHour.map((f,i) => (
-          <div key={i}>{f.t} → {f.dst} ({f.fl})</div>
-        ))}
-      </div>
-    </div>
+    React.createElement('div', {style:{background:"#1e293b",border:"1px solid #334155",borderRadius:8,padding:"10px 14px",color:"#f1f5f9",maxWidth:260}},
+      React.createElement('div', {style:{fontWeight:700,marginBottom:4}}, `${d.label} — ${d.count} flights`),
+      React.createElement('div', {style:{fontSize:12,color:"#f59e0b",marginBottom:4}}, `${d.cumPct}% departed by end of hour`),
+      React.createElement('div', {style:{fontSize:11,color:"#94a3b8",maxHeight:180,overflowY:"auto"}},
+        inHour.map((f,i) => React.createElement('div', {key:i}, `${f.t} → ${f.dst} (${f.fl})`))
+      )
+    )
   );
 };
 
-export default function App() {
-  const peak = data.reduce((a,b) => a.count > b.count ? a : b);
-  return (
-    <div style={{ background: "#0f172a", minHeight: "100vh", padding: 24, fontFamily: "system-ui, sans-serif", color: "#f1f5f9" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>RDU Departures by Hour</h1>
-        <p style={{ color: "#94a3b8", fontSize: 14, marginBottom: 24 }}>
-          Thursday, February 26, 2026 — {flights.length} total non-stop flights
-        </p>
+function App() {
+  const s = (tag, props, ...kids) => React.createElement(tag, props, ...kids);
 
-        <div style={{ display: "flex", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
-          {[
-            { label: "Total Flights", val: flights.length },
-            { label: "Peak Hour", val: `${peak.label} (${peak.count})` },
-            { label: "Airlines", val: Object.keys(airlineCounts).length },
-            { label: "Destinations", val: new Set(flights.map(f=>f.dst)).size },
-          ].map((s,i) => (
-            <div key={i} style={{ background: "#1e293b", borderRadius: 10, padding: "14px 20px", flex: "1 1 140px", minWidth: 140 }}>
-              <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1 }}>{s.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{s.val}</div>
-            </div>
-          ))}
-        </div>
+  return s('div', {style:{background:"#0f172a",minHeight:"100vh",padding:24,fontFamily:"system-ui,sans-serif",color:"#f1f5f9"}},
+    s('div', {style:{maxWidth:900,margin:"0 auto"}},
+      s('h1', {style:{fontSize:24,fontWeight:700,marginBottom:4}}, "RDU Departures by Hour"),
+      s('p', {style:{color:"#94a3b8",fontSize:14,marginBottom:24}}, `Thursday, February 26, 2026 — ${flights.length} total non-stop flights`),
 
-        <div style={{ background: "#1e293b", borderRadius: 12, padding: 24, marginBottom: 24 }}>
-          <ResponsiveContainer width="100%" height={340}>
-            <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontSize: 12 }} />
-              <YAxis yAxisId="left" tick={{ fill: "#94a3b8", fontSize: 12 }} />
-              <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fill: "#f59e0b", fontSize: 12 }} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(59,130,246,0.1)" }} />
-              <Bar yAxisId="left" dataKey="count" radius={[6, 6, 0, 0]}>
-                {data.map((d, i) => (
-                  <Cell key={i} fill={d.hour === peak.hour ? "#f59e0b" : "#3b82f6"} />
-                ))}
-              </Bar>
-              <Line yAxisId="right" type="monotone" dataKey="cumPct" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: "#f59e0b", r: 3, strokeWidth: 0 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+      s('div', {style:{display:"flex",gap:16,marginBottom:28,flexWrap:"wrap"}},
+        [{label:"Total Flights",val:flights.length},{label:"Peak Hour",val:`${peak.label} (${peak.count})`},{label:"Airlines",val:Object.keys(airlineCounts).length},{label:"Destinations",val:new Set(flights.map(f=>f.dst)).size}].map((st,i) =>
+          s('div', {key:i,style:{background:"#1e293b",borderRadius:10,padding:"14px 20px",flex:"1 1 140px",minWidth:140}},
+            s('div', {style:{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1}}, st.label),
+            s('div', {style:{fontSize:22,fontWeight:700,marginTop:4}}, st.val)
+          )
+        )
+      ),
 
-        <div style={{ background: "#1e293b", borderRadius: 12, padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Flights by Airline</h2>
-          {airlineData.map((a, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-              <div style={{ width: 90, fontSize: 13, color: "#cbd5e1", textAlign: "right" }}>{a.name}</div>
-              <div style={{ flex: 1, background: "#0f172a", borderRadius: 6, height: 24, overflow: "hidden" }}>
-                <div style={{
-                  width: `${(a.count / airlineData[0].count) * 100}%`,
-                  height: "100%",
-                  background: i === 0 ? "#f59e0b" : "#3b82f6",
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  paddingLeft: 8,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#fff",
-                  minWidth: 30
-                }}>{a.count}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      s('div', {style:{background:"#1e293b",borderRadius:12,padding:24,marginBottom:24}},
+        s('div', {style:{display:"flex",gap:20,marginBottom:12,fontSize:12}},
+          s('div', {style:{display:"flex",alignItems:"center",gap:6}},
+            s('div', {style:{width:14,height:14,borderRadius:3,background:"#3b82f6"}}),
+            s('span', {style:{color:"#94a3b8"}}, "Flights per hour")
+          ),
+          s('div', {style:{display:"flex",alignItems:"center",gap:6}},
+            s('div', {style:{width:20,height:3,borderRadius:2,background:"#f59e0b"}}),
+            s('span', {style:{color:"#94a3b8"}}, "Cumulative % departed")
+          )
+        ),
+        s(ResponsiveContainer, {width:"100%",height:340},
+          s(ComposedChart, {data, margin:{top:10,right:10,left:-10,bottom:0}},
+            s(CartesianGrid, {strokeDasharray:"3 3",stroke:"#334155"}),
+            s(XAxis, {dataKey:"label",tick:{fill:"#94a3b8",fontSize:12}}),
+            s(YAxis, {yAxisId:"left",tick:{fill:"#94a3b8",fontSize:12}}),
+            s(YAxis, {yAxisId:"right",orientation:"right",domain:[0,100],tickFormatter:v=>`${v}%`,tick:{fill:"#f59e0b",fontSize:12}}),
+            s(Tooltip, {content: s(CustomTooltip), cursor:{fill:"rgba(59,130,246,0.1)"}}),
+            s(Bar, {yAxisId:"left",dataKey:"count",radius:[6,6,0,0]},
+              data.map((d,i) => s(Cell, {key:i, fill: d.hour===peak.hour ? "#f59e0b" : "#3b82f6"}))
+            ),
+            s(Line, {yAxisId:"right",type:"monotone",dataKey:"cumPct",stroke:"#f59e0b",strokeWidth:2.5,dot:{fill:"#f59e0b",r:3,strokeWidth:0}})
+          )
+        )
+      ),
+
+      s('div', {style:{background:"#1e293b",borderRadius:12,padding:24}},
+        s('h2', {style:{fontSize:16,fontWeight:600,marginBottom:16}}, "Flights by Airline"),
+        airlineData.map((a,i) =>
+          s('div', {key:i,style:{display:"flex",alignItems:"center",gap:12,marginBottom:10}},
+            s('div', {style:{width:90,fontSize:13,color:"#cbd5e1",textAlign:"right"}}, a.name),
+            s('div', {style:{flex:1,background:"#0f172a",borderRadius:6,height:24,overflow:"hidden"}},
+              s('div', {style:{width:`${(a.count/airlineData[0].count)*100}%`,height:"100%",background:i===0?"#f59e0b":"#3b82f6",borderRadius:6,display:"flex",alignItems:"center",paddingLeft:8,fontSize:11,fontWeight:600,color:"#fff",minWidth:30}}, a.count)
+            )
+          )
+        )
+      )
+    )
   );
 }
+
+ReactDOM.render(React.createElement(App), document.getElementById('root'));
+</script>
+</body>
+</html>
