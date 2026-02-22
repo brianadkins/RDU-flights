@@ -1,0 +1,232 @@
+import { useState } from "react";
+import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ComposedChart } from "recharts";
+
+const flights = [
+  {t:"05:00",dst:"ORD",fl:"AA3703",al:"American"},{t:"05:03",dst:"CLT",fl:"AA1903",al:"American"},
+  {t:"05:15",dst:"ATL",fl:"DL1530",al:"Delta"},{t:"05:25",dst:"MDW",fl:"WN339",al:"Southwest"},
+  {t:"05:30",dst:"DTW",fl:"DL1388",al:"Delta"},{t:"05:37",dst:"JFK",fl:"AA4510",al:"American"},
+  {t:"05:45",dst:"AUS",fl:"WN1011",al:"Southwest"},
+  {t:"06:00",dst:"DCA",fl:"AA4698",al:"American"},{t:"06:00",dst:"LGA",fl:"AA4647",al:"American"},
+  {t:"06:00",dst:"DCA",fl:"DL5006",al:"Delta"},{t:"06:00",dst:"EWR",fl:"UA1525",al:"United"},
+  {t:"06:00",dst:"MSP",fl:"DL2538",al:"Delta"},{t:"06:00",dst:"LGA",fl:"DL5164",al:"Delta"},
+  {t:"06:00",dst:"BOS",fl:"B6984",al:"JetBlue"},{t:"06:05",dst:"BWI",fl:"WN1449",al:"Southwest"},
+  {t:"06:06",dst:"MIA",fl:"AA1231",al:"American"},{t:"06:10",dst:"ATL",fl:"F94797",al:"Frontier"},
+  {t:"06:15",dst:"IAD",fl:"UA1789",al:"United"},{t:"06:15",dst:"BNA",fl:"WN3299",al:"Southwest"},
+  {t:"06:15",dst:"JFK",fl:"B6386",al:"JetBlue"},{t:"06:18",dst:"IAH",fl:"UA1383",al:"United"},
+  {t:"06:20",dst:"ATL",fl:"DL1192",al:"Delta"},{t:"06:29",dst:"ORD",fl:"UA2638",al:"United"},
+  {t:"06:30",dst:"TPA",fl:"DL1279",al:"Delta"},{t:"06:35",dst:"TPA",fl:"WN676",al:"Southwest"},
+  {t:"06:39",dst:"ORD",fl:"AA4408",al:"American"},{t:"06:45",dst:"DFW",fl:"AA802",al:"American"},
+  {t:"06:45",dst:"LAS",fl:"DL2027",al:"Delta"},{t:"06:45",dst:"MCO",fl:"WN3312",al:"Southwest"},
+  {t:"06:59",dst:"EWR",fl:"DL5120",al:"Delta"},
+  {t:"07:00",dst:"CLT",fl:"AA683",al:"American"},{t:"07:00",dst:"PHX",fl:"AA3095",al:"American"},
+  {t:"07:00",dst:"FLL",fl:"B62625",al:"JetBlue"},{t:"07:00",dst:"SLC",fl:"DL967",al:"Delta"},
+  {t:"07:00",dst:"AUS",fl:"DL4921",al:"Delta"},{t:"07:00",dst:"BOS",fl:"DL1054",al:"Delta"},
+  {t:"07:05",dst:"MCO",fl:"DL1337",al:"Delta"},{t:"07:05",dst:"DEN",fl:"WN3308",al:"Southwest"},
+  {t:"07:07",dst:"JFK",fl:"DL5239",al:"Delta"},{t:"07:09",dst:"MCI",fl:"DL5230",al:"Delta"},
+  {t:"07:36",dst:"SEA",fl:"DL354",al:"Delta"},{t:"07:45",dst:"STL",fl:"WN3317",al:"Southwest"},
+  {t:"08:00",dst:"PHL",fl:"AA1559",al:"American"},{t:"08:00",dst:"PIT",fl:"AA4532",al:"American"},
+  {t:"08:00",dst:"DEN",fl:"UA2270",al:"United"},{t:"08:08",dst:"MIA",fl:"DL890",al:"Delta"},
+  {t:"08:18",dst:"BNA",fl:"DL5114",al:"Delta"},{t:"08:20",dst:"ATL",fl:"DL691",al:"Delta"},
+  {t:"08:38",dst:"MIA",fl:"AA1088",al:"American"},{t:"08:40",dst:"BWI",fl:"WN3303",al:"Southwest"},
+  {t:"08:42",dst:"PBI",fl:"MX540",al:"Breeze"},{t:"08:45",dst:"SFO",fl:"UA795",al:"United"},
+  {t:"08:47",dst:"DFW",fl:"AA1217",al:"American"},{t:"08:47",dst:"BOS",fl:"F93058",al:"Frontier"},
+  {t:"08:48",dst:"MHT",fl:"MX744",al:"Breeze"},{t:"08:55",dst:"LGA",fl:"DL5256",al:"Delta"},
+  {t:"09:08",dst:"CLT",fl:"AA1906",al:"American"},{t:"09:09",dst:"JAX",fl:"MX408",al:"Breeze"},
+  {t:"09:20",dst:"EWR",fl:"UA1753",al:"United"},{t:"09:30",dst:"CUN",fl:"AM585",al:"Aeromexico"},
+  {t:"09:30",dst:"YYZ",fl:"AC8837",al:"Air Canada"},{t:"09:35",dst:"BNA",fl:"AA4762",al:"American"},
+  {t:"09:38",dst:"BTV",fl:"MX134",al:"Breeze"},{t:"09:40",dst:"ALB",fl:"MX854",al:"Breeze"},
+  {t:"09:43",dst:"DAB",fl:"MX754",al:"Breeze"},{t:"09:43",dst:"DTW",fl:"DL2062",al:"Delta"},
+  {t:"09:59",dst:"ATL",fl:"DL2647",al:"Delta"},
+  {t:"10:00",dst:"ORD",fl:"UA1448",al:"United"},{t:"10:00",dst:"JFK",fl:"DL5294",al:"Delta"},
+  {t:"10:04",dst:"BOS",fl:"B6484",al:"JetBlue"},{t:"10:05",dst:"BOS",fl:"DL1022",al:"Delta"},
+  {t:"10:26",dst:"DCA",fl:"AA4439",al:"American"},{t:"10:30",dst:"LGA",fl:"AA4459",al:"American"},
+  {t:"10:31",dst:"IAD",fl:"UA2163",al:"United"},{t:"10:38",dst:"DFW",fl:"F92343",al:"Frontier"},
+  {t:"10:45",dst:"JFK",fl:"AA4788",al:"American"},{t:"10:47",dst:"IAH",fl:"F91741",al:"Frontier"},
+  {t:"10:47",dst:"CMH",fl:"MX209",al:"Breeze"},
+  {t:"11:00",dst:"IND",fl:"DL4780",al:"Delta"},{t:"11:00",dst:"JFK",fl:"B61486",al:"JetBlue"},
+  {t:"11:03",dst:"ATL",fl:"DL1480",al:"Delta"},{t:"11:15",dst:"LAS",fl:"WN1347",al:"Southwest"},
+  {t:"11:18",dst:"EWR",fl:"UA1847",al:"United"},{t:"11:20",dst:"PHL",fl:"AA5370",al:"American"},
+  {t:"11:20",dst:"MCO",fl:"WN673",al:"Southwest"},{t:"11:24",dst:"CLT",fl:"AA1895",al:"American"},
+  {t:"11:32",dst:"MIA",fl:"AA2340",al:"American"},{t:"11:32",dst:"MSP",fl:"DL1578",al:"Delta"},
+  {t:"11:36",dst:"DCA",fl:"AA3792",al:"American"},{t:"11:37",dst:"DFW",fl:"AA2683",al:"American"},
+  {t:"11:45",dst:"SJU",fl:"B62929",al:"JetBlue"},{t:"11:45",dst:"LGA",fl:"DL1222",al:"Delta"},
+  {t:"11:49",dst:"SDF",fl:"MX330",al:"Breeze"},
+  {t:"12:05",dst:"BNA",fl:"WN480",al:"Southwest"},{t:"12:10",dst:"BWI",fl:"WN1732",al:"Southwest"},
+  {t:"12:13",dst:"FLL",fl:"DL1038",al:"Delta"},{t:"12:25",dst:"EWR",fl:"DL5273",al:"Delta"},
+  {t:"12:33",dst:"ATL",fl:"DL2052",al:"Delta"},{t:"12:37",dst:"MCO",fl:"DL1312",al:"Delta"},
+  {t:"12:40",dst:"PHX",fl:"WN4848",al:"Southwest"},{t:"12:48",dst:"ORD",fl:"AA3393",al:"American"},
+  {t:"12:55",dst:"ATL",fl:"WN3296",al:"Southwest"},
+  {t:"13:01",dst:"DTW",fl:"DL2164",al:"Delta"},{t:"13:01",dst:"PHL",fl:"AA5316",al:"American"},
+  {t:"13:02",dst:"IAH",fl:"UA6296",al:"United"},{t:"13:05",dst:"LGA",fl:"AA4425",al:"American"},
+  {t:"13:05",dst:"HOU",fl:"WN3310",al:"Southwest"},{t:"13:10",dst:"JFK",fl:"AA4765",al:"American"},
+  {t:"13:11",dst:"MCO",fl:"F91039",al:"Frontier"},{t:"13:12",dst:"LGA",fl:"DL5274",al:"Delta"},
+  {t:"13:13",dst:"CLT",fl:"AA2688",al:"American"},{t:"13:20",dst:"BOS",fl:"DL1033",al:"Delta"},
+  {t:"13:25",dst:"YUL",fl:"AC8674",al:"Air Canada"},{t:"13:26",dst:"ORD",fl:"UA1920",al:"United"},
+  {t:"13:37",dst:"DCA",fl:"AA4048",al:"American"},{t:"13:57",dst:"HVN",fl:"XP676",al:"Avelo"},
+  {t:"14:08",dst:"RSW",fl:"MX745",al:"Breeze"},{t:"14:12",dst:"JFK",fl:"DL5009",al:"Delta"},
+  {t:"14:20",dst:"BDL",fl:"MX541",al:"Breeze"},{t:"14:33",dst:"PVD",fl:"MX755",al:"Breeze"},
+  {t:"14:39",dst:"MCO",fl:"MX855",al:"Breeze"},{t:"14:40",dst:"FLL",fl:"WN1433",al:"Southwest"},
+  {t:"14:40",dst:"MIA",fl:"F93321",al:"Frontier"},{t:"14:41",dst:"LGA",fl:"AA4560",al:"American"},
+  {t:"14:51",dst:"EWR",fl:"UA2856",al:"United"},{t:"14:54",dst:"CLT",fl:"AA1897",al:"American"},
+  {t:"14:55",dst:"DAL",fl:"WN3307",al:"Southwest"},{t:"14:57",dst:"CVG",fl:"DL4911",al:"Delta"},
+  {t:"15:01",dst:"MEX",fl:"AM431",al:"Aeromexico"},{t:"15:02",dst:"DCA",fl:"DL5310",al:"Delta"},
+  {t:"15:03",dst:"IAD",fl:"UA2463",al:"United"},{t:"15:08",dst:"FLL",fl:"NK1761",al:"Spirit"},
+  {t:"15:15",dst:"YYZ",fl:"AC8839",al:"Air Canada"},{t:"15:18",dst:"ATL",fl:"DL2026",al:"Delta"},
+  {t:"15:22",dst:"TPA",fl:"MX135",al:"Breeze"},{t:"15:27",dst:"PHL",fl:"F92072",al:"Frontier"},
+  {t:"15:30",dst:"BWI",fl:"WN331",al:"Southwest"},{t:"15:35",dst:"PSM",fl:"MX2854",al:"Breeze"},
+  {t:"15:37",dst:"LGA",fl:"DL5818",al:"Delta"},{t:"15:46",dst:"JFK",fl:"B62486",al:"JetBlue"},
+  {t:"15:47",dst:"DFW",fl:"AA2693",al:"American"},{t:"15:51",dst:"BNA",fl:"AA4685",al:"American"},
+  {t:"16:04",dst:"MCO",fl:"F91111",al:"Frontier"},{t:"16:06",dst:"DEN",fl:"UA2288",al:"United"},
+  {t:"16:10",dst:"AUS",fl:"DL4967",al:"Delta"},{t:"16:15",dst:"FRA",fl:"LH409",al:"Lufthansa"},
+  {t:"16:20",dst:"CLT",fl:"AA2704",al:"American"},{t:"16:24",dst:"PHL",fl:"AA5476",al:"American"},
+  {t:"16:29",dst:"ORD",fl:"AA4652",al:"American"},{t:"16:29",dst:"MSY",fl:"MX331",al:"Breeze"},
+  {t:"16:47",dst:"IAH",fl:"UA2407",al:"United"},{t:"16:50",dst:"ATL",fl:"DL1550",al:"Delta"},
+  {t:"16:50",dst:"LAX",fl:"DL462",al:"Delta"},{t:"16:55",dst:"DEN",fl:"F92225",al:"Frontier"},
+  {t:"17:00",dst:"DTW",fl:"DL1407",al:"Delta"},{t:"17:14",dst:"ORD",fl:"UA1625",al:"United"},
+  {t:"17:16",dst:"BNA",fl:"DL5152",al:"Delta"},{t:"17:20",dst:"AUS",fl:"WN1975",al:"Southwest"},
+  {t:"17:20",dst:"PHX",fl:"AA795",al:"American"},{t:"17:27",dst:"LGA",fl:"AA4497",al:"American"},
+  {t:"17:28",dst:"DCA",fl:"AA4624",al:"American"},{t:"17:41",dst:"ORD",fl:"AA3597",al:"American"},
+  {t:"17:54",dst:"ATL",fl:"DL1235",al:"Delta"},{t:"17:57",dst:"LGA",fl:"DL5227",al:"Delta"},
+  {t:"18:00",dst:"TPA",fl:"WN3320",al:"Southwest"},{t:"18:01",dst:"EWR",fl:"DL5222",al:"Delta"},
+  {t:"18:06",dst:"TPA",fl:"DL2046",al:"Delta"},{t:"18:08",dst:"EWR",fl:"NK257",al:"Spirit"},
+  {t:"18:11",dst:"MCO",fl:"DL1319",al:"Delta"},{t:"18:13",dst:"MIA",fl:"AA3045",al:"American"},
+  {t:"18:20",dst:"DEN",fl:"WN4227",al:"Southwest"},{t:"18:27",dst:"SFO",fl:"UA1769",al:"United"},
+  {t:"18:29",dst:"ORD",fl:"AA4402",al:"American"},{t:"18:33",dst:"CLT",fl:"AA1894",al:"American"},
+  {t:"18:36",dst:"LAX",fl:"AA2308",al:"American"},{t:"18:40",dst:"JFK",fl:"AA4804",al:"American"},
+  {t:"18:45",dst:"BOS",fl:"B62184",al:"JetBlue"},{t:"18:47",dst:"EWR",fl:"UA3643",al:"United"},
+  {t:"18:51",dst:"SEA",fl:"AS572",al:"Alaska"},{t:"18:53",dst:"MSP",fl:"DL2519",al:"Delta"},
+  {t:"18:54",dst:"PHL",fl:"AA4411",al:"American"},{t:"18:55",dst:"ATL",fl:"F91669",al:"Frontier"},
+  {t:"18:59",dst:"JFK",fl:"DL5219",al:"Delta"},
+  {t:"19:00",dst:"MCO",fl:"WN1001",al:"Southwest"},{t:"19:09",dst:"TPA",fl:"F93373",al:"Frontier"},
+  {t:"19:18",dst:"DFW",fl:"AA771",al:"American"},{t:"19:30",dst:"PIT",fl:"AA4742",al:"American"},
+  {t:"19:35",dst:"BOS",fl:"DL2393",al:"Delta"},{t:"19:37",dst:"DCA",fl:"DL5198",al:"Delta"},
+  {t:"19:40",dst:"LGA",fl:"AA4704",al:"American"},{t:"19:43",dst:"MIA",fl:"AA1891",al:"American"},
+  {t:"19:49",dst:"ATL",fl:"DL1097",al:"Delta"},{t:"19:52",dst:"FLL",fl:"B6725",al:"JetBlue"},
+  {t:"19:55",dst:"LGA",fl:"DL5101",al:"Delta"},{t:"19:55",dst:"MDW",fl:"WN3316",al:"Southwest"},
+  {t:"20:00",dst:"IAD",fl:"UA2091",al:"United"},{t:"20:00",dst:"BWI",fl:"WN4361",al:"Southwest"},
+  {t:"20:04",dst:"CAK",fl:"MX409",al:"Breeze"},{t:"20:10",dst:"STL",fl:"WN523",al:"Southwest"},
+  {t:"20:19",dst:"CLT",fl:"AA1904",al:"American"},{t:"20:20",dst:"SJU",fl:"F91226",al:"Frontier"},
+  {t:"20:35",dst:"LHR",fl:"AA174",al:"American"},{t:"20:45",dst:"BNA",fl:"WN4966",al:"Southwest"},
+  {t:"21:05",dst:"MCO",fl:"MX2855",al:"Breeze"},{t:"21:07",dst:"DCA",fl:"AA5577",al:"American"},
+  {t:"21:59",dst:"MCO",fl:"F91233",al:"Frontier"},
+  {t:"22:18",dst:"PHL",fl:"F91518",al:"Frontier"},{t:"22:20",dst:"BNA",fl:"AA4646",al:"American"},
+];
+
+// Group by hour
+const hourCounts = {};
+for (let h = 5; h <= 22; h++) hourCounts[h] = 0;
+flights.forEach(f => {
+  const hr = parseInt(f.t.split(":")[0]);
+  hourCounts[hr] = (hourCounts[hr] || 0) + 1;
+});
+
+let cumulative = 0;
+const total = flights.length;
+const data = Object.entries(hourCounts).map(([h, c]) => {
+  cumulative += c;
+  return {
+    hour: `${h.toString().padStart(2,"0")}:00`,
+    count: c,
+    cumPct: Math.round((cumulative / total) * 1000) / 10,
+    label: parseInt(h) < 12 ? `${parseInt(h)}am` : parseInt(h) === 12 ? "12pm" : `${parseInt(h)-12}pm`
+  };
+});
+
+// Airline breakdown
+const airlineCounts = {};
+flights.forEach(f => { airlineCounts[f.al] = (airlineCounts[f.al] || 0) + 1; });
+const airlineData = Object.entries(airlineCounts)
+  .sort((a,b) => b[1]-a[1])
+  .map(([name, count]) => ({ name, count }));
+
+const colors = ["#3b82f6","#60a5fa","#93c5fd","#2563eb","#1d4ed8","#1e40af","#3b82f6","#60a5fa","#93c5fd","#2563eb","#1d4ed8","#1e40af","#3b82f6","#60a5fa","#93c5fd","#2563eb","#1d4ed8","#1e40af"];
+
+const CustomTooltip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const flightsInHour = flights.filter(f => {
+    const hr = parseInt(f.t.split(":")[0]);
+    return `${hr.toString().padStart(2,"0")}:00` === d.hour;
+  });
+  return (
+    <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "10px 14px", color: "#f1f5f9", maxWidth: 260 }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{d.label} — {d.count} flights</div>
+      <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 4 }}>{d.cumPct}% departed by end of hour</div>
+      <div style={{ fontSize: 11, color: "#94a3b8", maxHeight: 180, overflowY: "auto" }}>
+        {flightsInHour.map((f,i) => (
+          <div key={i}>{f.t} → {f.dst} ({f.fl})</div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  const peak = data.reduce((a,b) => a.count > b.count ? a : b);
+  return (
+    <div style={{ background: "#0f172a", minHeight: "100vh", padding: 24, fontFamily: "system-ui, sans-serif", color: "#f1f5f9" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>RDU Departures by Hour</h1>
+        <p style={{ color: "#94a3b8", fontSize: 14, marginBottom: 24 }}>
+          Thursday, February 26, 2026 — {flights.length} total non-stop flights
+        </p>
+
+        <div style={{ display: "flex", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
+          {[
+            { label: "Total Flights", val: flights.length },
+            { label: "Peak Hour", val: `${peak.label} (${peak.count})` },
+            { label: "Airlines", val: Object.keys(airlineCounts).length },
+            { label: "Destinations", val: new Set(flights.map(f=>f.dst)).size },
+          ].map((s,i) => (
+            <div key={i} style={{ background: "#1e293b", borderRadius: 10, padding: "14px 20px", flex: "1 1 140px", minWidth: 140 }}>
+              <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1 }}>{s.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{s.val}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: "#1e293b", borderRadius: 12, padding: 24, marginBottom: 24 }}>
+          <ResponsiveContainer width="100%" height={340}>
+            <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+              <YAxis yAxisId="left" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+              <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fill: "#f59e0b", fontSize: 12 }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(59,130,246,0.1)" }} />
+              <Bar yAxisId="left" dataKey="count" radius={[6, 6, 0, 0]}>
+                {data.map((d, i) => (
+                  <Cell key={i} fill={d.hour === peak.hour ? "#f59e0b" : "#3b82f6"} />
+                ))}
+              </Bar>
+              <Line yAxisId="right" type="monotone" dataKey="cumPct" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: "#f59e0b", r: 3, strokeWidth: 0 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div style={{ background: "#1e293b", borderRadius: 12, padding: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Flights by Airline</h2>
+          {airlineData.map((a, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+              <div style={{ width: 90, fontSize: 13, color: "#cbd5e1", textAlign: "right" }}>{a.name}</div>
+              <div style={{ flex: 1, background: "#0f172a", borderRadius: 6, height: 24, overflow: "hidden" }}>
+                <div style={{
+                  width: `${(a.count / airlineData[0].count) * 100}%`,
+                  height: "100%",
+                  background: i === 0 ? "#f59e0b" : "#3b82f6",
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  paddingLeft: 8,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#fff",
+                  minWidth: 30
+                }}>{a.count}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
